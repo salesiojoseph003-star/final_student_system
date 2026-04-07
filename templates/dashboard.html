@@ -1,0 +1,27 @@
+<h1>Dashboard</h1>
+<a href="/logout">Logout</a>
+
+<form method="post" action="/add">
+<input name="name" placeholder="Name">
+<input name="marks" placeholder="Marks">
+<button>Add</button>
+</form>
+
+<ul>
+{% for s in students %}
+<li>{{s['name']}} - {{s['marks']}}</li>
+{% endfor %}
+</ul>
+
+<canvas id="chart"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let ctx=document.getElementById('chart');
+new Chart(ctx,{
+type:'bar',
+data:{
+labels: {{names|tojson}},
+datasets:[{label:'Marks',data: {{marks|tojson}}}]
+}
+});
+</script>
