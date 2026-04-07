@@ -1,2 +1,6 @@
 flask
 werkzeug
+reportlab
+scikit-learn
+pandas
+numpy

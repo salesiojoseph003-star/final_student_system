@@ -1,27 +1,159 @@
-<h1>Dashboard</h1>
-<a href="/logout">Logout</a>
+{% extends "base.html" %}
 
-<form method="post" action="/add">
-<input name="name" placeholder="Name">
-<input name="marks" placeholder="Marks">
-<button>Add</button>
-</form>
+{% block title %}Dashboard - Student Management{% endblock %}
 
-<ul>
-{% for s in students %}
-<li>{{s['name']}} - {{s['marks']}}</li>
-{% endfor %}
-</ul>
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-users"></i> Student Management</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                            <i class="fas fa-plus"></i> Add New Student
+                        </button>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <div class="btn-group">
+                            <button class="btn btn-info" onclick="refreshPredictions()">
+                                <i class="fas fa-sync"></i> Refresh AI Predictions
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-<canvas id="chart"></canvas>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Current Marks</th>
+                                <th>AI Prediction</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>{{ student.name }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if student.marks >= 70 else 'warning' if student.marks >= 50 else 'danger' }}">
+                                        {{ student.marks }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% set pred = predictions[student.id] %}
+                                    {% if pred.predicted_marks %}
+                                        <div>
+                                            <strong>{{ pred.predicted_marks }}</strong>
+                                            <br>
+                                            <small class="trend-{{ pred.trend.lower().replace(' ', '-') }}">
+                                                <i class="fas fa-{{ 'arrow-up' if 'improving' in pred.trend.lower() else 'arrow-down' if 'declining' in pred.trend.lower() else 'minus' }}"></i>
+                                                {{ pred.trend }}
+                                            </small>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">{{ pred }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/download/{{ student.id }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-download"></i> PDF Report
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card prediction-card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-brain"></i> AI Insights</h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">Total Students: <strong>{{ students|length }}</strong></p>
+                <p class="mb-2">Average Performance: <strong>{{ marks|sum / marks|length if marks else 0 |round(1) }}</strong></p>
+                <p class="mb-0">AI Predictions Active: <i class="fas fa-check-circle text-success"></i></p>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Performance Chart</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/add">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Student Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="marks" class="form-label">Current Marks</label>
+                        <input type="number" class="form-control" id="marks" name="marks" min="0" max="100" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-let ctx=document.getElementById('chart');
-new Chart(ctx,{
-type:'bar',
-data:{
-labels: {{names|tojson}},
-datasets:[{label:'Marks',data: {{marks|tojson}}}]
-}
+const ctx = document.getElementById('performanceChart');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ names|tojson }},
+        datasets: [{
+            label: 'Current Marks',
+            data: {{ marks|tojson }},
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
 });
+
+function refreshPredictions() {
+    location.reload();
+}
 </script>
+{% endblock %}
